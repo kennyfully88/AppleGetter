@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .game-box-container {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 90%;
+      }
+
+      .apples-text {
+        position: absolute;
+        top: 0.5rem;
+        left: 0.5rem;
+      }
+
+      .game-box {
+        border: 0.25rem solid black;
+        background-color: lightgreen;
+        height: 100%;
+        image-rendering: pixelated;
+      }
+
+      .instructions-text {
+        position: absolute;
+        bottom: 0.5rem;
+        left: 0.5rem;
+      }
+    </style>
+    <script defer src="app.js"></script>
+    <title>Apple Getter</title>
+  </head>
+  <body>
+    <div class="game-box-container">
+      <h2 class="apples-text">
+        りんご: <span class="apples-score-label">0</span>
+      </h2>
+      <canvas class="game-box" width="160" height="160"></canvas>
+      <p class="instructions-text">「↑↓←→」のキーを使用したください。</p>
+    </div>
+  </body>
+  <script defer>
+    'use strict';
+
+    // DOM =================================================================
+    const applesScoreLabel = document.querySelector('.apples-score-label');
+    const gameBox = document.querySelector('.game-box'); //gameBox is the canvas
+    const ctx = gameBox.getContext('2d'); // context for gameBox
+
+    // Images
+    const playerImage = new Image();
+    playerImage.src =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAApNJREFUeJztm7FuwjAQhg/Eg4QwsDEFiYGVZ2DhPXgG3oOl6iN0zVApnbpVqC0rb9Ahwh2QLcfY8V0S20W9fwGj5D7f1Q253wEgoPKsEHlWiJCMvhphDtKT+Dq/oc/5eB8DAMB8cSWdR2X10QQzGZkIAMB8UQjsxOaLK2kyetEkC4BWiLYVZ4tjDWwmricScwWYfF8Mk2m+t83jLqAZBAP2JdI3BqWQg64ATIC2iXRZAUPxsWoElOCnl1frwdvNCjWRrgmk4KsP8qwQErzdrBqTsI1twfokkJSfZ4WoTrWoTrXIs0IIIYT8zBxXp1o8lz933+9mDPneNf4r/DFYNJsuW8e2yut/vc/vSlXbHAMAHI5l68UqJv+uADKQ6/V8qVsn0yWBlPwxwO1/Qq+QXk05Pl9qBd/v1s4LUZcEUvK93wL6CfvdWk3YBOvLUEq/eJlxsBex0PxB7wP6JJCKH6TZiHkj8xf5LCn2A9gPYD9Anc9+APsB7Ac8jh/gU2g/ICZ/RIUD3G4vzfv5Pgmk5Fv9AKqoCfj8gJh8cgEw/XhIDc23+gEuMKYf9wnjB8TkB/UDXOBYfgCGz35AW8CuSt2Pp+azpNgPYD+A/QB1PvsB7AewH/BYfoC5J29OJLQfEItv9QPklvJsurQGw/TjlARS8p3tMGVL25WAq8PD+AGx+I0CbDerRuVc1ceIkkBK/gRA9eONKppwTDur7+e7lmCLH5CEz36A7WD2A3oqdT+ems+SYj+A/QD2A9T57AewH8B+wGP5ASY45u8FYvK9zwfYenPq/rwvgZR81PY45Xl9VwKU3wvE5HsLoPfmsl+nqos3EIuPej5APq9/OJZwOJak/XlMAin5/8YP0GOxH8B+AEvpF88gNOQKrAefAAAAAElFTkSuQmCC';
+
+    const appleImage = new Image();
+    appleImage.src =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAQCAYAAACm53kpAAAAAXNSR0IArs4c6QAAAZlJREFUWIXVV71qwzAQ/pwEuhg6ZxPJExgMwVuGDH2Gjl7yTF089hkyZPDWGAx9AgVtmQtdCg3qEFm9yNGPnSw6MFx0933f3fkQcQJiC5bLzj+KNgmNhcRD7B79sfwJDb5Uvzp5V850kisWEg9p4B79EA0bx00BmgQAtthRtIkLO3aAQ/R9Dfr4nQSb+RkAsD9NMXQDNvMz9qfpXQ2M1ad5AHQt1g2gRJ3PWYrtzxcA4O3pGUvxrfN862fifQ08St82QBNPOWYmEWfpxalroMi0z9drAOgRUcIFyyXFlwCqIgMXLZZl7mzgEfq7kgxQtNjOM5Qfn5ffBE/1J51jFt8Q8qYrSBVovm0bvlINNKogztJB+DH6nKXgotX4qsic+FlPXNkKANT0VoYYZymWyCW9ZGLFT3DL1LqsKFidBVlE+P87oK6vk1yCdQ2wvH8WIX7SC/jMlRMhXm9AA7UuXYI5QQJs0LfY8ViwXB4AKT3PAZC2Wzhm/BXJLaKDDxwp3vpv7F20V+ev6tLwfYnFhreSmZMa+gkaC/4PmwJbyDhn3KcAAAAASUVORK5CYII=';
+
+    // Classes =================================================================
+    // camera
+    class Camera {
+      constructor(config) {
+        this.focus = config?.focus || null; // the object for the camera to focus on
+        this.x = config?.x || this.focus?.dx || 0; // position of camera.x
+        this.y = config?.y || this.focus?.dy || 0; // position of camera.y
+      }
+
+      updateCameraPosition() {
+        this.x = Math.floor(-160 / 2) + this.focus.dx; // reposition camera.x
+        this.y = Math.floor(-160 / 2) + this.focus.dy; // reposition camera.y
+      }
+    }
+
+    // player
+    class Player {
+      constructor(config) {
+        this._rng = String(Math.floor(Math.random() * 100)).padEnd(3, '0'); // random number generator
+        this._id = `player_${new Date().getTime()}${this._rng}`; // generated id
+        this.image = playerImage;
+        this.currentFrame = 1; // helper variable to help with requestAnimationFrame()
+        this.totalFps = 60; // helper variable to help with requestAnimationFrame()
+        this.totalImageFrames = 4; // the number of frames in the sprite
+        this.sx = config?.sx || 0; // source x position
+        this.sy = config?.sy || 0; // source y position
+        this.sw = config?.sw || 16; // source width
+        this.sh = config?.sh || 16; // source height
+        this.dx = config?.dx || 0; //destination x position
+        this.dy = config?.dy || 0; //destination y position
+        this.dw = config?.dw || 16; //destination width
+        this.dh = config?.dh || 16; //destination height
+        this.animation = config?.animation || 0; // lazy way to play animations
+
+        this.movement = config?.movement || 'idle'; // player movement
+        window.addEventListener('keydown', e => {
+          e.preventDefault();
+          if (e.key === 'ArrowUp') {
+            this.movement = 'up';
+          } else if (e.key === 'ArrowDown') {
+            this.movement = 'down';
+          } else if (e.key === 'ArrowLeft') {
+            this.movement = 'left';
+          } else if (e.key === 'ArrowRight') {
+            this.movement = 'right';
+          } else {
+            this.movement = '';
+          }
+        });
+
+        window.addEventListener('keyup', e => {
+          e.preventDefault();
+          this.movement = 'idle';
+        });
+      }
+
+      collidedWithWalls(walls) {
+        for (let i = 0; i < walls.length; i++) {
+          if (
+            //Check x
+            player.dx + player.dw > walls[i].dx && // right side
+            player.dx < walls[i].dx + walls[i].dw && // left side
+            // Check y
+            player.dy + player.dh > walls[i].dy && // bottom side
+            player.dy < walls[i].dy + walls[i].dh // top side
+          ) {
+            if (player.movement === 'up') {
+              player.dy++;
+            } else if (player.movement === 'down') {
+              player.dy--;
+            } else if (player.movement === 'left') {
+              player.dx++;
+            } else if (player.movement === 'right') {
+              player.dx--;
+            }
+            return;
+          }
+        }
+      }
+
+      checkIfTouchedApple(apples) {
+        apples.forEach(apple => {
+          if (
+            this.dx + this.dw > apple.dx &&
+            this.dx < apple.dx + apple.dw &&
+            this.dy + this.dh > apple.dy &&
+            this.dy < apple.dy + apple.dh
+          ) {
+            apples.splice(apples.indexOf(apple), 1);
+            applesScore++;
+            applesScoreLabel.innerText = applesScore;
+          }
+        });
+      }
+
+      appleTimer(apples) {
+        apples.forEach(apple => {
+          if (apple.timer <= 0) {
+            apples.splice(apples.indexOf(apple), 1);
+          }
+        });
+      }
+
+      render(ctx, cameraX, cameraY) {
+        ctx.drawImage(
+          this.image,
+          Math.floor(
+            this.currentFrame / (this.totalFps / this.totalImageFrames),
+          ) * 16,
+          this.animation * 16,
+          this.sw,
+          this.sh,
+          this.dx - cameraX,
+          this.dy - cameraY,
+          this.dw,
+          this.dh,
+        );
+      }
+
+      update(walls, apples) {
+        // player animation
+        if (this.currentFrame >= this.totalFps - 1) {
+          this.currentFrame = 1;
+        } else {
+          this.currentFrame++;
+        }
+
+        this.appleTimer(apples);
+
+        // player movement
+        if (this.movement === 'up') {
+          this.animation = 1;
+          if (this.dy <= 0) return;
+          this.dy--;
+        } else if (this.movement === 'down') {
+          this.animation = 0;
+          if (this.dy + 16 >= 320) return;
+          this.dy++;
+        } else if (this.movement === 'left') {
+          this.animation = 2;
+          if (this.dx <= 0) return;
+          this.dx--;
+        } else if (this.movement === 'right') {
+          this.animation = 3;
+          if (this.dx + 16 >= 320) return;
+          this.dx++;
+        } else {
+          return;
+        }
+
+        this.collidedWithWalls(walls);
+        this.checkIfTouchedApple(apples);
+      }
+    }
+
+    // wall
+    class Wall {
+      constructor(config) {
+        this.color = config?.color || '#C89D7C'; // wall color
+        this.dx = config?.dx || 0; // distination x position
+        this.dy = config?.dy || 0; // distination y position
+        this.dw = config?.dw || 16; // distination width
+        this.dh = config?.dh || 16; // distination height
+      }
+
+      render(ctx, cameraX, cameraY) {
+        ctx.fillStyle = this.color; // wall color
+        ctx.fillRect(this.dx - cameraX, this.dy - cameraY, this.dw, this.dh); // draws the wall
+      }
+    }
+
+    // apple
+    class Apple {
+      constructor(config) {
+        this._rng = String(Math.floor(Math.random() * 100)).padEnd(3, '0');
+        this.id = `apple_${new Date().getTime()}${this._rng}`;
+        this.image = appleImage;
+        this.currentFrame = 1;
+        this.totalFps = 60;
+        this.timer = 1200;
+        this.totalImageFrames = 4;
+        this.sx = config?.sx || 0;
+        this.sy = config?.sy || 0;
+        this.sw = config?.sw || 16;
+        this.sh = config?.sh || 16;
+        this.dx = config?.dx || 0;
+        this.dy = config?.dy || 0;
+        this.dw = config?.dw || 16;
+        this.dh = config?.dh || 16;
+      }
+
+      render(ctx, cameraX, cameraY) {
+        ctx.drawImage(
+          this.image,
+          Math.floor(
+            this.currentFrame / (this.totalFps / this.totalImageFrames),
+          ) * 16,
+          this.sy,
+          this.sw,
+          this.sh,
+          this.dx - cameraX,
+          this.dy - cameraY,
+          this.dw,
+          this.dh,
+        );
+
+        if (this.currentFrame >= this.totalFps - 1) {
+          this.currentFrame = 1;
+        } else {
+          this.currentFrame++;
+        }
+
+        this.timer--;
+      }
+    }
+
+    // Variables =================================================================
+    let applesScore = 0;
+    const camera = new Camera(); // this camera will follow the player
+
+    const player = new Player(); // player instance
+    camera.focus = player; // the camera needs to focus on the player
+
+    const walls = [
+      new Wall({dx: 16 * 2, dy: 16 * 3, dw: 16 * 3}),
+      new Wall({dx: 16 * 1, dy: 16 * 7, dw: 16 * 5}),
+    ];
+
+    // Up to 3 apples will apprear at random places on the screen
+    // Right now there isn't any logic for handling not spawning on walls
+    const apples = [];
+    setInterval(() => {
+      const randomX = Math.floor(Math.random() * 9) * 16;
+      const randomY = Math.floor(Math.random() * 8) * 16;
+      if (apples.length < 3) {
+        apples.push(new Apple({dx: randomX, dy: randomY}));
+      }
+    }, 3000);
+
+    // Gameplay =================================================================
+    const renderScene = () => {
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+      walls.forEach(wall => {
+        wall.render(ctx, camera.x, camera.y);
+      });
+
+      apples.forEach(apple => {
+        apple.render(ctx, camera.x, camera.y);
+      });
+
+      player.render(ctx, camera.x, camera.y);
+
+      // update camera after everything is rendered
+      camera.updateCameraPosition();
+
+      requestAnimationFrame(() => renderScene(ctx));
+
+      player.update(walls, apples);
+    };
+
+    renderScene();
+  </script>
+</html>
